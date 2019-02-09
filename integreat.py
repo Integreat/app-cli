@@ -1,6 +1,10 @@
+#!/usr/bin/env python3
 import requests
 import json
 import time
+from distutils.spawn import find_executable
+from subprocess import Popen, PIPE, STDOUT
+import shlex
 
 """
 CONFIGURATION SECTION
@@ -54,9 +58,14 @@ def get_pages(site):
 		pages[page['id']] = page
 	return pages
 
-def display_content(site):
-	pages = get_pages(site)
-	display_page(pages)
+def render_content(content):
+	if find_executable('w3m'):
+		cmd = shlex.split("w3m -dump -cols 84 -T 'text/html'")
+		p = Popen(cmd, stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
+		grep_stdout = p.communicate(input=bytes(content, 'utf-8'))[0]
+		print(grep_stdout.decode())
+	else:
+		print(content)
 
 def display_page(pages, user_page = None):
 	list_children(pages, user_page)
@@ -69,7 +78,7 @@ def display_page(pages, user_page = None):
 			print("------------------------------------------------------------------------")
 			print("Page content")
 			print("------------------------------------------------------------------------")
-			print(pages[user_page]['content'])
+			render_content(pages[user_page]['content'])
 			print()
 			display_page(pages, user_page)
 		except ValueError:
@@ -99,7 +108,8 @@ def main():
 		print()
 		print("Welcome to {}".format(site['name']))
 		print()
+		pages = get_pages(site)
 		if site is not False:
-			display_content(site)
+			display_page(pages)
 
 main()
